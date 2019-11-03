@@ -22,7 +22,11 @@ class ItemViewController: UIViewController {
         return view
     }()
 
-    private var completeState: (state: Bool, storeName: String, storeImageURL: String)?
+    var completeState: (state: Bool, storeName: String, storeImageURL: String)? {
+        didSet {
+            tableView.reloadData()
+        }
+    }
 
     // MARK: - ScrollView
     @IBOutlet weak var scrollView: UIScrollView!
@@ -132,14 +136,8 @@ class ItemViewController: UIViewController {
 
     private var moreRests: [StoreForView] = []
 
-    var completeState: (state: Bool, storeName: String, storeImageURL: String)?
-
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        completeState = (state: true, storeName: "", storeImageURL: "")
-
-        tabBarController?.view.addSubview(indicator)
 
         initFoodMarket()
 
@@ -152,12 +150,24 @@ class ItemViewController: UIViewController {
                                       selector: #selector(autoScrolledBanner),
                                       userInfo: nil,
                                       repeats: true)
+
+        tabBarController?.view.addSubview(indicator)
+
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+
         tabBarController?.tabBar.isHidden = false
         navigationController?.setNavigationBarHidden(false, animated: false)
+
+        guard let completeState = completeState else {
+            return
+        }
+
+        if completeState.state {
+                self.tableView.reloadData()
+        }
     }
 
     @IBAction func touchUpSettingLocation(_ sender: Any) {
@@ -208,6 +218,7 @@ class ItemViewController: UIViewController {
         tableView.bringSubviewToFront(pageControl)
 
         tableView.register(UINib.TableViewCellNIB, forCellReuseIdentifier: tableViewCellId)
+
         tableView.register(UINib.SeeMoreRestTableViewCellNIB, forCellReuseIdentifier: "SeeMoreRestTableViewCellId")
     }
 
@@ -354,9 +365,11 @@ extension ItemViewController: UITableViewDelegate, UITableViewDataSource {
 
         switch tableViewSection {
         case .bannerScroll:
+
             guard let completeState = completeState else {
                 return 0
             }
+
             if completeState.state {
                 return 1
             } else {
@@ -387,6 +400,7 @@ extension ItemViewController: UITableViewDelegate, UITableViewDataSource {
         guard let tableviewSection = TableViewSection(rawValue: indexPath.section) else {
             return .init()
         }
+
         switch tableviewSection {
         case .bannerScroll:
             deliveryCompleteStaticTableCell.storeInfo = (state: true, storeName: "피자헛 강남 논현점 Pizza Hut GangNam Nonhyeon", storeImageURL: "gogossing")
@@ -446,13 +460,11 @@ extension ItemViewController: UITableViewDelegate, UITableViewDataSource {
                 }
 
                 if moreRests.count > indexPath.row {
-
                     moreRestTableViewCell.moreRests = moreRests[indexPath.row]
 
                     guard let imageURL = URL(string: moreRests[indexPath.item].mainImage) else {
                         return moreRestTableViewCell
                     }
-
                     ImageNetworkManager.shared.getImageByCache(imageURL: imageURL) { [weak moreRestTableViewCell] (downloadImage, error) in
                         if error != nil {
                             return
@@ -462,7 +474,6 @@ extension ItemViewController: UITableViewDelegate, UITableViewDataSource {
                         }
                         moreRestTableViewCell?.mainImage.image = downloadImage
                     }
-
                 }
                 return moreRestTableViewCell
             }
@@ -482,9 +493,13 @@ extension ItemViewController: UITableViewDelegate, UITableViewDataSource {
             if indexPath.row == restMoreSeeTableViewRow {
                 return heightOfMoreRestTitle
             } else {
-                return tableViewSection.heightOfTableViewCell()
+                if moreRests[indexPath.row].promotion == "" {
+                    return 240
+                } else {
+                    return 267
+                }
+                //return tableViewSection.heightOfTableViewCell()
             }
-
         default:
             return tableViewSection.heightOfTableViewCell()
         }
